@@ -6,7 +6,15 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from typing import List
 from langchain_core.documents import Document
 import os
+from dotenv import load_dotenv, find_dotenv
 from chroma_utils import vectorstore
+
+# Preparando o ambiente
+load_dotenv(find_dotenv())
+os.environ['LANGSMITH_API_KEY'] = str(os.getenv('LANGSMITH_API_KEY'))
+os.environ['LANGSMITH_TRACING'] = 'true'
+os.environ['LANGSMITH_ENDPOINT'] = 'https://api.smith.langchain.com'
+os.environ['LANGCHAIN_PROJECT'] = 'default'
 
 retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 
