@@ -9,6 +9,7 @@ import logging
 import shutil
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+from fastapi.responses import JSONResponse
 
 # Set up logging
 logging.basicConfig(filename='app.log', level=logging.INFO)
@@ -31,8 +32,34 @@ async def get_api_key(x_openai_key: Optional[str] = Header(None)) -> str:
     return x_openai_key
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy", "service": "chatbot-api"}
+async def health_check():
+    try:
+        # Verificar se o diretório de dados existe
+        os.makedirs("/app/data", exist_ok=True)
+        
+        # Verificar se podemos escrever no diretório
+        test_file = "/app/data/test.txt"
+        with open(test_file, "w") as f:
+            f.write("test")
+        os.remove(test_file)
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "healthy",
+                "service": "chatbot-api",
+                "timestamp": str(uuid.uuid4())
+            }
+        )
+    except Exception as e:
+        logging.error(f"Health check failed: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "unhealthy",
+                "error": str(e)
+            }
+        )
 
 @app.get("/")
 def root():
