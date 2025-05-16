@@ -2,6 +2,20 @@ import streamlit as st
 from api_utils import upload_document, list_documents, delete_document
 
 def display_sidebar():
+    # API Key input
+    if "openai_api_key" not in st.session_state:
+        st.session_state.openai_api_key = ""
+        
+    st.sidebar.header("OpenAI API Key")
+    api_key = st.sidebar.text_input(
+        "Enter your OpenAI API Key",
+        value=st.session_state.openai_api_key,
+        type="password",
+        help="Get your API key from https://platform.openai.com/api-keys"
+    )
+    if api_key:
+        st.session_state.openai_api_key = api_key
+
     # Model selection
     model_options = ["gpt-4o", "gpt-4o-mini"]
     st.sidebar.selectbox("Select Model", options=model_options, key="model")
@@ -9,8 +23,11 @@ def display_sidebar():
     # Document upload
     uploaded_file = st.sidebar.file_uploader("Choose a file", type=["pdf", "docx", "html"])
     if uploaded_file and st.sidebar.button("Upload"):
+        if not st.session_state.openai_api_key:
+            st.sidebar.error("Please enter your OpenAI API key first!")
+            return
         with st.spinner("Uploading..."):
-            upload_response = upload_document(uploaded_file)
+            upload_response = upload_document(uploaded_file, st.session_state.openai_api_key)
             if upload_response:
                 st.sidebar.success(f"File uploaded successfully with ID {upload_response['file_id']}.")
                 st.session_state.documents = list_documents()

@@ -1,6 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Header, Depends
 from pydantic_models import QueryInput, QueryResponse, DocumentInfo, DeleteFileRequest
-from langchain_utils import get_rag_chain
+from langchain_utils import get_rag_chain, set_openai_api_key
 from db_utils import insert_application_logs, get_chat_history, get_all_documents, insert_document_record, delete_document_record
 from chroma_utils import index_document_to_chroma, delete_doc_from_chroma
 import os
@@ -8,6 +8,7 @@ import uuid
 import logging
 import shutil
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
 
 # Set up logging
 logging.basicConfig(filename='app.log', level=logging.INFO)
@@ -24,6 +25,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def get_api_key(x_openai_key: Optional[str] = Header(None)) -> str:
+    if not x_openai_key:
+        raise HTTPException(status_code=401, detail="OpenAI API Key is required")
+    return x_openai_key
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "service": "chatbot-api"}
@@ -32,10 +38,10 @@ def health_check():
 def root():
     return {"message": "API FastAPI está rodando com sucesso!"}
 
-
 # --- Chat Endpoint ----------------------------------------------------------------------------------------------------------------------------------------------------
 @app.post("/chat", response_model=QueryResponse)
-def chat(query_input: QueryInput):
+async def chat(query_input: QueryInput, api_key: str = Depends(get_api_key)):
+    set_openai_api_key(api_key)
     session_id = query_input.session_id or str(uuid.uuid4())
     logging.info(f"Session ID: {session_id}, User Query: {query_input.question}, Model: {query_input.model.value}")
 
@@ -50,10 +56,13 @@ def chat(query_input: QueryInput):
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
     return QueryResponse(answer=answer, session_id=session_id, model=query_input.model)
 
-
 # --- Upload Endpoint ----------------------------------------------------------------------------------------------------------------------------------------------------
 @app.post("/upload-doc")
-def upload_and_index_document(file: UploadFile = File(...)):
+async def upload_and_index_document(
+    file: UploadFile = File(...),
+    api_key: str = Depends(get_api_key)
+):
+    set_openai_api_key(api_key)
     allowed_extensions = ['.pdf', '.docx', '.html']
     file_extension = os.path.splitext(file.filename)[1].lower()
 
@@ -84,11 +93,13 @@ def upload_and_index_document(file: UploadFile = File(...)):
 def list_documents():
     return get_all_documents()
 
-
-
 # --- Delete Documents Endpoint ----------------------------------------------------------------------------------------------------------------------------------------------------
 @app.post("/delete-doc")
-def delete_document(request: DeleteFileRequest):
+async def delete_document(
+    request: DeleteFileRequest,
+    api_key: str = Depends(get_api_key)
+):
+    set_openai_api_key(api_key)
     chroma_delete_success = delete_doc_from_chroma(request.file_id)
 
     if chroma_delete_success:

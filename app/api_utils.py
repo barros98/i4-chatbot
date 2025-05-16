@@ -2,7 +2,15 @@ import requests
 import streamlit as st
 
 def get_api_response(question, session_id, model):
-    headers = {'accept': 'application/json', 'Content-Type': 'application/json'}
+    if not st.session_state.get("openai_api_key"):
+        st.error("Please enter your OpenAI API key in the sidebar!")
+        return None
+
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-OpenAI-Key': st.session_state.openai_api_key
+    }
     data = {"question": question, "model": model}
     if session_id:
         data["session_id"] = session_id
@@ -18,10 +26,11 @@ def get_api_response(question, session_id, model):
         st.error(f"An error occurred: {str(e)}")
         return None
 
-def upload_document(file):
+def upload_document(file, api_key):
     try:
         files = {"file": (file.name, file, file.type)}
-        response = requests.post("http://backend:8000/upload-doc", files=files)
+        headers = {'X-OpenAI-Key': api_key}
+        response = requests.post("http://backend:8000/upload-doc", files=files, headers=headers)
         if response.status_code == 200:
             return response.json()
         else:
@@ -44,7 +53,15 @@ def list_documents():
         return []
 
 def delete_document(file_id):
-    headers = {'accept': 'application/json', 'Content-Type': 'application/json'}
+    if not st.session_state.get("openai_api_key"):
+        st.error("Please enter your OpenAI API key in the sidebar!")
+        return None
+
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-OpenAI-Key': st.session_state.openai_api_key
+    }
     data = {"file_id": file_id}
 
     try:
