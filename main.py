@@ -7,12 +7,26 @@ import os
 import uuid
 import logging
 import shutil
+from fastapi.middleware.cors import CORSMiddleware
 
 # Set up logging
 logging.basicConfig(filename='app.log', level=logging.INFO)
 
 # Initialize FastAPI app
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Você deve configurar isso adequadamente em produção
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "chatbot-api"}
 
 @app.get("/")
 def root():
