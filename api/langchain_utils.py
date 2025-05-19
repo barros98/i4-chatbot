@@ -35,8 +35,11 @@ qa_prompt = ChatPromptTemplate.from_messages([
 
 
 # RAG Chain
-def get_rag_chain(model="gpt-4o-mini"):
-    llm = ChatOpenAI(model=model)
+def get_rag_chain(model="gpt-4o-mini", api_key=None):
+    if not api_key:
+        raise ValueError("API key is required")
+    
+    llm = ChatOpenAI(model=model, api_key=api_key)
     history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)    

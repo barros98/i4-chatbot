@@ -2,6 +2,12 @@ import streamlit as st
 from api_utils import upload_document, list_documents, delete_document
 
 def display_sidebar():
+    # API Key input
+    api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+    if not api_key:
+        st.sidebar.warning("Please enter your OpenAI API key to use the chatbot")
+    st.session_state.api_key = api_key
+
     # Model selection
     model_options = ["gpt-4o", "gpt-4o-mini"]
     st.sidebar.selectbox("Select Model", options=model_options, key="model")
